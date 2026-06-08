@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
 
 env:
-  # This silences the Node.js 20 warning you were seeing
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
@@ -15,7 +14,6 @@ jobs:
 
       - name: Extract the ZIP file
         run: |
-          # This securely finds the zip file even if it has spaces in the name
           ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
             echo "Error: Could not find any .zip file in the repository!"
@@ -25,7 +23,6 @@ jobs:
           unzip -q "$ZIP_FILE" -d extracted_app
 
       - name: Set up Java
-        # Updated to v4 to fix the Node.js deprecation warning
         uses: actions/setup-java@v4 
         with:
           distribution: 'temurin'
@@ -33,15 +30,24 @@ jobs:
 
       - name: Locate and Build APK
         run: |
-          # Find the gradlew file safely
-          GRADLE_PATH=$(find . -name "gradlew" | head -n 1)
-          if [ -z "$GRADLE_PATH" ]; then
-             echo "Error: gradlew not found! AI Studio may not have generated a valid Android project."
+          # Look for the core Gradle settings file instead of gradlew
+          PROJECT_FILE=$(find . -name "settings.gradle*" | head -n 1)
+          
+          # Fallback to build.gradle if settings is missing
+          if [ -z "$PROJECT_FILE" ]; then
+             PROJECT_FILE=$(find . -name "build.gradle*" | head -n 1)
+          fi
+          
+          if [ -z "$PROJECT_FILE" ]; then
+             echo "Error: Gradle project files not found! AI Studio didn't generate a valid project."
              exit 1
           fi
           
-          GRADLE_DIR=$(dirname "$GRADLE_PATH")
-          cd "$GRADLE_DIR"
+          # Navigate into the extracted project directory
+          cd $(dirname "$PROJECT_FILE")
+          
+          echo "Generating missing gradlew file..."
+          gradle wrapper
           
           echo "Building the APK..."
           chmod +x ./gradlew
