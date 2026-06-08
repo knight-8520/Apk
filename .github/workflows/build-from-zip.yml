@@ -28,22 +28,28 @@ jobs:
           distribution: 'temurin'
           java-version: '17' 
 
+      - name: Generate Missing Debug Keystore
+        run: |
+          # Create a standard Android debug keystore file right where the build expects it
+          mkdir -p ~/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          
+          # Also place a copy in the app folder just in case the AI studio build.gradle file points directly to it
+          PROJECT_FILE=$(find . -name "settings.gradle*" | head -n 1)
+          if [ -z "$PROJECT_FILE" ]; then
+             PROJECT_FILE=$(find . -name "build.gradle*" | head -n 1)
+          fi
+          PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          cp ~/.android/debug.keystore "$PROJECT_DIR/debug.keystore"
+          echo "Debug keystore successfully created!"
+
       - name: Locate and Build APK
         run: |
-          # Look for the core Gradle settings file instead of gradlew
           PROJECT_FILE=$(find . -name "settings.gradle*" | head -n 1)
-          
-          # Fallback to build.gradle if settings is missing
           if [ -z "$PROJECT_FILE" ]; then
              PROJECT_FILE=$(find . -name "build.gradle*" | head -n 1)
           fi
           
-          if [ -z "$PROJECT_FILE" ]; then
-             echo "Error: Gradle project files not found! AI Studio didn't generate a valid project."
-             exit 1
-          fi
-          
-          # Navigate into the extracted project directory
           cd $(dirname "$PROJECT_FILE")
           
           echo "Generating missing gradlew file..."
