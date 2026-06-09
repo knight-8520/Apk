@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Silences the Node.js deprecation warnings
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
@@ -31,11 +30,9 @@ jobs:
 
       - name: Generate Missing Debug Keystore
         run: |
-          # Create a standard Android debug keystore file
           mkdir -p ~/.android
           keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           
-          # Copy it into the project folder where the build expects it
           PROJECT_FILE=$(find . -name "settings.gradle*" | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
              PROJECT_FILE=$(find . -name "build.gradle*" | head -n 1)
@@ -58,9 +55,13 @@ jobs:
           
           echo "Building the APK..."
           chmod +x ./gradlew
-          
-          # Added headless flag and disabled daemon to fix the KSP / AWT compiler crash
           ./gradlew assembleDebug -Djava.awt.headless=true --no-daemon
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-ai-studio-app
+          path: extracted_app/**/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
