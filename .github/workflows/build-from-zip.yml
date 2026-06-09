@@ -30,9 +30,11 @@ jobs:
 
       - name: Generate Missing Debug Keystore
         run: |
+          # Create a standard Android debug keystore file right where the build expects it
           mkdir -p ~/.android
           keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           
+          # Also place a copy in the app folder just in case the AI studio build.gradle file points directly to it
           PROJECT_FILE=$(find . -name "settings.gradle*" | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
              PROJECT_FILE=$(find . -name "build.gradle*" | head -n 1)
@@ -55,19 +57,10 @@ jobs:
           
           echo "Building the APK..."
           chmod +x ./gradlew
-          ./gradlew assembleDebug -Djava.awt.headless=true --no-daemon
+          ./gradlew assembleDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
-        with:
-          name: my-ai-studio-app
-          path: extracted_app/**/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload Finished APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: my-ai-studio-app
-          path: extracted_app/**/app/build/outputs/apk/debug/app-debug.apk
         with:
           name: my-ai-studio-app
           path: extracted_app/**/app/build/outputs/apk/debug/app-debug.apk
